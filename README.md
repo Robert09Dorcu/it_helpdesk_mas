@@ -1,107 +1,77 @@
 # IT Helpdesk MAS
 
-Sistem multi-agent (MAS) construit cu **Google ADK** care automatizeaza
-triajul si rezolvarea de nivel 1 a tichetelor IT dintr-o organizatie.
+A multi-agent system built with [Google ADK](https://google.github.io/adk-docs/) that automates first-level triage and resolution of IT support tickets.
 
-## Problema
+## Overview
 
-Departamentul IT dintr-o companie primeste zilnic cereri repetitive
-(resetare parola, probleme wifi, instalare software etc.) pe care un om
-trebuie sa le citeasca, sa le clasifice si sa le rezolve sau sa le rutheze
-manual catre tehnicianul potrivit. Sistemul de fata automatizeaza acest flux.
+IT departments receive a constant stream of repetitive requests (password resets, Wi-Fi issues, software installs, etc.) that normally require a human to read, classify, and route. This project automates that workflow with a team of cooperating agents, and also detects when an issue category becomes recurring across the organization, flagging it for a systemic fix instead of only closing individual tickets.
 
-## Arhitectura
+## Architecture
+
+A coordinator agent routes each request through a chain of specialized agents, each handing off to the next once its part is done:
 
 ```
-Utilizator
-    |
-    v
-Coordinator (root_agent)  --- transfera automat, mereu, orice cerere noua
-    |
-    v
-Triage Agent               --- clasifica (categorie + prioritate)
-    |                           tool: log_ticket
-    | transfera automat cu contextul (ticket_id, categorie)
-    v
-Resolution Agent           --- cauta solutie sau escaladeaza
-    |                           tools: search_knowledge_base, escalate_to_human
-    | transfera automat (raspunsul e salvat in state: resolution_response)
-    v
-Insights Agent              --- verifica daca aceasta categorie a devenit
-                                 recurenta la nivel de organizatie
-                                 tool: analyze_recurring_issues
+User → Coordinator → Triage Agent → Resolution Agent → Insights Agent
 ```
 
-- **Coordinator**: singurul rol e sa initieze fluxul, transferand mereu catre
-  `triage_agent`. Nu raspunde niciodata direct la o problema tehnica.
-- **Triage Agent**: clasifica cererea in `hardware` / `software` / `acces` /
-  `retea`, stabileste prioritatea, o inregistreaza (`log_ticket`), apoi
-  transfera catre `resolution_agent`.
-- **Resolution Agent**: cauta o solutie cunoscuta (`search_knowledge_base`).
-  Daca gaseste una cu incredere ridicata o ofera direct; altfel escaladeaza
-  (`escalate_to_human`) catre un tehnician uman. Apoi transfera catre
-  `insights_agent`.
-- **Insights Agent**: nu se ocupa de tichetul individual, ci verifica daca
-  ACEASTA categorie de probleme a aparut de mai multe ori in organizatie
-  (`analyze_recurring_issues`). Daca da, adauga o notă separata pentru
-  echipa IT cu o recomandare sistemica (ex: upgrade infrastructura wifi).
-  Asta transforma sistemul dintr-un simplu "rezolvator de tichete" intr-unul
-  care detecteaza tipare la nivel de organizatie.
+| Agent | Responsibility | Tools |
+|---|---|---|
+| Coordinator | Entry point; always hands off new requests to Triage | — |
+| Triage | Classifies category and priority, logs the ticket | `log_ticket` |
+| Resolution | Looks up a known fix or escalates to a human | `search_knowledge_base`, `escalate_to_human` |
+| Insights | Checks whether the issue category is recurring org-wide | `analyze_recurring_issues` |
 
-Criteriul de selectie a agentilor e descris explicit in `instruction`-ul
-fiecarui agent (vezi `agent.py`) — fiecare agent transfera mai departe catre
-urmatorul din lant dupa ce isi termina partea lui.
+The full flow, including every tool call, is visible live in the ADK web UI's "Events" tab.
 
-## Cum rulezi local (pe laptopul tau)
+## Getting Started
 
-1. Ai nevoie de o cheie API gratuita Google AI Studio:
-   https://aistudio.google.com/apikey
+### Prerequisites
 
-2. Instaleaza dependinta:
-   ```bash
-   pip install -r requirements.txt
-   ```
+- Python 3.10+
+- A Google AI Studio API key: https://aistudio.google.com/apikey
 
-3. Copiaza `it_helpdesk_agent/.env.example` in `it_helpdesk_agent/.env` si
-   pune cheia ta:
-   ```bash
-   cp it_helpdesk_agent/.env.example it_helpdesk_agent/.env
-   # editeaza .env si pune GOOGLE_API_KEY=cheia_ta
-   ```
+### Installation
 
-4. Din directorul `it_helpdesk_mas` (parintele folderului agentului), ruleaza:
-   ```bash
-   adk web
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-5. Se deschide automat interfata grafica (implicit pe
-   `http://localhost:8000`). Selecteaza `it_helpdesk_agent` din dropdown si
-   incepe conversatia.
+### Configuration
 
-## Exemple de utilizare
+```bash
+cp it_helpdesk_agent/.env.example it_helpdesk_agent/.env
+# edit .env and set GOOGLE_API_KEY
+```
 
-- "Nu imi merge wifi-ul de doua ore, nu pot lucra deloc" → triaj: `retea`,
-  prioritate `ridicata` → resolution gaseste solutie in KB → raspuns direct.
-- "As vrea sa instalez Photoshop" → triaj: `software` → solutie din KB.
-- "Mi s-a stricat monitorul extern" → triaj: `hardware` → nu exista solutie
-  in KB → escaladare automata catre tehnician.
-- "Mi-am uitat parola de la cont" → triaj: `acces` → solutie din KB.
+### Run
 
-**Pentru a demonstra si detectarea problemelor recurente** (insights_agent):
-trimite DOUA mesaje diferite din aceeasi categorie in aceeasi sesiune de
-`adk web` (fara sa apesi "New Session" intre ele), de exemplu:
-1. "Nu imi merge wifi-ul"
-2. "Wifi-ul cade foarte des azi"
+```bash
+adk web
+```
 
-La al doilea mesaj, `insights_agent` ar trebui sa adauge o "Nota interna
-pentru echipa IT" semnaland ca s-au inregistrat 2 tichete de categoria
-`retea` si sugerand un upgrade de infrastructura. Asta e cel mai puternic
-moment de demo — arata ca sistemul nu doar rezolva cazuri individuale, ci
-identifica tendinte la nivel de organizatie.
+Open the printed URL (defaults to `http://localhost:8000`), select `it_helpdesk_agent` from the dropdown, and start chatting.
 
-## Posibile extinderi
+## Example
 
-- Adauga un al treilea agent `feedback_agent` care cere un scurt feedback
-  dupa rezolvare si il salveaza.
-- Conecteaza `log_ticket` la un fisier JSON real in loc de lista in memorie,
-  ca sa arati persistenta intre rulari.
+> "I can't connect to Wi-Fi, I've been stuck for two hours."
+
+The system classifies it as a network issue with high priority, logs the ticket, finds a known fix, and replies with the solution. If the same category comes up again later in the session, the Insights agent appends an internal note recommending a systemic fix (e.g. upgrading network infrastructure).
+
+## Project Structure
+
+```
+it_helpdesk_mas/
+├── it_helpdesk_agent/
+│   ├── agent.py         # Agents, tools, and in-memory knowledge base
+│   ├── __init__.py
+│   └── .env.example
+├── requirements.txt
+└── README.md
+```
+
+## Possible Improvements
+
+- Replace the in-memory ticket log and keyword-based knowledge base with persistent storage and embeddings-based search
+- Add a feedback agent that follows up after resolution
+- Integrate with a real ticketing system (Jira, Zendesk, ServiceNow)
+- Add automated tests and an ADK eval suite for agent behavior
