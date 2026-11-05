@@ -1,9 +1,9 @@
-# IT Helpdesk MAS — Provocarea ITSS Summer School 2026
+# IT Helpdesk MAS
 
 Sistem multi-agent (MAS) construit cu **Google ADK** care automatizeaza
 triajul si rezolvarea de nivel 1 a tichetelor IT dintr-o organizatie.
 
-## Problema recurenta aleasa
+## Problema
 
 Departamentul IT dintr-o companie primeste zilnic cereri repetitive
 (resetare parola, probleme wifi, instalare software etc.) pe care un om
@@ -46,7 +46,7 @@ Insights Agent              --- verifica daca aceasta categorie a devenit
   (`analyze_recurring_issues`). Daca da, adauga o notă separata pentru
   echipa IT cu o recomandare sistemica (ex: upgrade infrastructura wifi).
   Asta transforma sistemul dintr-un simplu "rezolvator de tichete" intr-unul
-  care detecteaza tipare — exact tema provocarii ("problema recurenta").
+  care detecteaza tipare la nivel de organizatie.
 
 Criteriul de selectie a agentilor e descris explicit in `instruction`-ul
 fiecarui agent (vezi `agent.py`) — fiecare agent transfera mai departe catre
@@ -57,9 +57,9 @@ urmatorul din lant dupa ce isi termina partea lui.
 1. Ai nevoie de o cheie API gratuita Google AI Studio:
    https://aistudio.google.com/apikey
 
-2. Instaleaza dependinta (ai deja Python pe Ubuntu):
+2. Instaleaza dependinta:
    ```bash
-   pip install google-adk --break-system-packages
+   pip install -r requirements.txt
    ```
 
 3. Copiaza `it_helpdesk_agent/.env.example` in `it_helpdesk_agent/.env` si
@@ -78,7 +78,7 @@ urmatorul din lant dupa ce isi termina partea lui.
    `http://localhost:8000`). Selecteaza `it_helpdesk_agent` din dropdown si
    incepe conversatia.
 
-## Exemple de mesaje pentru demo
+## Exemple de utilizare
 
 - "Nu imi merge wifi-ul de doua ore, nu pot lucra deloc" → triaj: `retea`,
   prioritate `ridicata` → resolution gaseste solutie in KB → raspuns direct.
@@ -99,32 +99,7 @@ pentru echipa IT" semnaland ca s-au inregistrat 2 tichete de categoria
 moment de demo — arata ca sistemul nu doar rezolva cazuri individuale, ci
 identifica tendinte la nivel de organizatie.
 
-## Ce sa arati/spui la prezentare (mapat pe cerintele slide-ului)
-
-- **Cum sunt apelati agentii**: coordinator → triage_agent → resolution_agent
-  → insights_agent, prin transfer automat (`transfer_to_agent`), vizibil live
-  in tab-ul "Events" din `adk web`.
-- **Criteriile de selectie pentru fiecare agent**: regulile sunt scrise
-  explicit in instructiunile fiecarui agent — fiecare agent transfera mai
-  departe catre urmatorul din lant dupa ce isi termina partea lui.
-- **Tool-urile activate in fiecare etapa**: `log_ticket` (triage),
-  `search_knowledge_base` + `escalate_to_human` (resolution),
-  `analyze_recurring_issues` (insights) — vizibile ca function calls in
-  "Events".
-- **Componentele arhitecturale**: 4 agenti (1 coordonator + 3 specializati),
-  o baza de cunostinte simulata, un jurnal de tichete simulat, un mecanism
-  de detectare a tiparelor recurente.
-- **Fluxul de comunicare**: utilizator → coordinator → triage (clasificare +
-  logare) → resolution (cautare solutie / escaladare) → insights (detectare
-  recurenta) → raspuns final catre utilizator, plus nota interna pentru IT
-  daca e cazul.
-- **De ce e relevant pentru "problema recurenta" din cerinta**: sistemul nu
-  se opreste la rezolvarea unui singur tichet — `insights_agent` inchide
-  bucla, transformand date individuale in informatie utila pentru
-  organizatie (exact "invatarea" din agentic AI, spre deosebire de un tool
-  traditional care doar raspunde comenzilor).
-
-## Extindere rapida (daca vrei sa impresionezi si mai mult)
+## Posibile extinderi
 
 - Adauga un al treilea agent `feedback_agent` care cere un scurt feedback
   dupa rezolvare si il salveaza.
